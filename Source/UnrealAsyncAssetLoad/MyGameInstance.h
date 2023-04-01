@@ -36,6 +36,8 @@ public:
 
 	void SaveStudentPackage() const;
 	void LoadStudentPackage() const;
+	// 1. 패키지가 아니라 바로 오브젝트 경로로 애셋을 로드하는 함수
+	void LoadStudentObject() const;
 
 private:
 	static const FString PackageName;

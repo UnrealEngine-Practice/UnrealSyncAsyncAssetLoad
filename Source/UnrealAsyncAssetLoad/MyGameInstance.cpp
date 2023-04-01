@@ -4,7 +4,6 @@
 #include "MyGameInstance.h"
 #include "Student.h"
 #include "JsonObjectConverter.h"
-// 8-2 이 헤더가 있어야 패키지를 저장할 떄 쓰이는 함수를 쓸 수  있다.
 #include "UObject/SavePackage.h"
 
 const FString UMyGameInstance::PackageName = TEXT("/Game/Student");
@@ -12,7 +11,19 @@ const FString UMyGameInstance::AssetName = TEXT("TopStudent");
 
 UMyGameInstance::UMyGameInstance()
 {
-	
+	// 3.이번에는 생성자에서 애셋을 로드한다. 게임이 시작되기 전에 메모리에 올라가는 것을 의미한다.
+	const FString TopSoftObjectPath = FString::Printf(TEXT("%s.%s"), *PackageName, *AssetName);
+	// 4. 이 떄는 LoadObject를 쓰는 것이 아니라 언리얼에서 제공하는 Contstructor helper를 사용한다.
+	static ConstructorHelpers::FObjectFinder<UStudent> UASSET_TopStudent(*TopSoftObjectPath);
+	// 5. Constructor Helper에 의해 로드되었으면 Succeeded()를 이용해 성공 실패 여부를 알 수 있다.
+	if (UASSET_TopStudent.Succeeded())
+	{
+		// 7. 에디터 실행 후 플레이버튼을 누르면 이 로그가 2번 찍히는 것을 확인 할 수 있다.
+		//    에디터가 켜질 때 한 번, 게임이 시작될 때 한 번 실행된다.
+		//    그리고 이 경우에는 애셋이 반드시 있다고 가정하기 때문에, 애셋이 존재하지 않는 경우에는
+		//    실행되지 않고 강력한 경고와 에러 메시지를 띄운다.
+		UASSET_TopStudent.Object->PrintInfo(TEXT("Constructor"));
+	}
 }
 
 void UMyGameInstance::Init()
@@ -123,8 +134,10 @@ void UMyGameInstance::Init()
 
 	SaveStudentPackage();
 
+	// LoadStudentPackage();
 	
-	LoadStudentPackage();
+	// 6. 주석처리하고 생성자에서 불러오는지 확인
+	// LoadStudentObject();
 }
 
 void UMyGameInstance::SaveStudentPackage() const
@@ -138,7 +151,7 @@ void UMyGameInstance::SaveStudentPackage() const
 	StudentPackage = CreatePackage(*PackageName);
 	constexpr EObjectFlags ObjectFlag = RF_Public | RF_Standalone;
 	UStudent* TopStudent = NewObject<UStudent>(StudentPackage, UStudent::StaticClass(), *AssetName, ObjectFlag);
-	TopStudent->SetName("김동호");
+	TopStudent->SetName(TEXT("김동호"));
 	TopStudent->SetOrder(100);
 	
 	constexpr int NumOfSubObjects = 10;
@@ -171,4 +184,19 @@ void UMyGameInstance::LoadStudentPackage() const
 	StudentPackage->FullyLoad();
 	UStudent* TopStudent = FindObject<UStudent>(StudentPackage, *AssetName);
 	TopStudent->PrintInfo(TEXT("UE Object 찾음!"));
+}
+
+void UMyGameInstance::LoadStudentObject() const
+{
+	//2. 애셋의 오브젝트경로를 만들어준다.
+	//   오브젝트 경로는 패키지이름.애셋이름으로 구성된다. 
+	const FString TopSoftObjectPath = FString::Printf(TEXT("%s.%s"), *PackageName, *AssetName);
+	UStudent* TopStudent = LoadObject<UStudent>(nullptr, *TopSoftObjectPath);
+	if (nullptr == TopStudent)
+	{
+		UE_LOG(LogTemp, Log, TEXT("오브젝트 경로에 의한 로드 실패."));
+		return;
+	}
+	TopStudent->PrintInfo(TEXT("LoadObject Asset"));
+	
 }
