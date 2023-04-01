@@ -4,6 +4,7 @@
 #include "MyGameInstance.h"
 #include "Student.h"
 #include "JsonObjectConverter.h"
+// 8-2 이 헤더가 있어야 패키지를 저장할 떄 쓰이는 함수를 쓸 수  있다.
 #include "UObject/SavePackage.h"
 
 const FString UMyGameInstance::PackageName = TEXT("/Game/Student");
@@ -135,9 +136,30 @@ void UMyGameInstance::Init()
 	SaveStudentPackage();
 
 	// LoadStudentPackage();
-	
+
 	// 6. 주석처리하고 생성자에서 불러오는지 확인
 	// LoadStudentObject();
+
+	// 12. 비동기 방식의 애셋 로드 실행
+	const FString TopSoftObjectPath = FString::Printf(TEXT("%s.%s"), *PackageName, *AssetName);
+	Handle = this->StreamableManager.RequestAsyncLoad(TopSoftObjectPath,
+		[&]()
+		{
+			// Handle은 TSharedPointer의 객체이고 IsValid는 스마트포인터의 멤버함수다.
+			// 그 안에서 ->가 오버로딩 되어 ->는 스마트포인터 내의 객체에 접근한다.
+			if (Handle.IsValid() && Handle->HasLoadCompleted())
+			{
+				UStudent* TopStudent = Cast<UStudent>(Handle->GetLoadedAsset());
+				if (nullptr != TopStudent)
+				{
+					TopStudent->PrintInfo(TEXT("Asynchronously Loaded Asset"));
+					// 13. 다 쓴 핸들은 해제해준다.
+					Handle->ReleaseHandle();
+					Handle.Reset();
+				}
+			}
+		}
+	); 
 }
 
 void UMyGameInstance::SaveStudentPackage() const
